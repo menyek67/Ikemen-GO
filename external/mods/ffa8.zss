@@ -1,0 +1,76 @@
+# IKEMEN GO FFA 2-8 common states
+# Last-man-standing controller. Engine-level target classification is applied
+# by build/ffa/apply_engine_patch.py in the FFA test build.
+
+[function ffa8_alive_count() y]
+let y = 0;
+for i = 1; 1+numpartner+numenemy; 1
+{
+    if player($i),life
+    {
+        let y = $y + 1;
+    }
+}
+
+[statedef +1]
+ignorehitpause if teammode=simul && gamemode="freeforall"
+{
+    if !ishelper
+    {
+        let ffa_alive = call ffa8_alive_count();
+
+        # The underlying slot allocator is Simul, but FFA is last-man-standing.
+        # Do not let either internal side finish the round while 2+ roots live.
+        if $ffa_alive > 1
+        {
+            assertspecial{flag:noko}
+            assertspecial{flag:roundnotover}
+        }
+
+        # Once only one root remains, allow the normal round-over path.
+        if $ffa_alive = 1 && life = 0 && alive
+        {
+            lifeadd{value:-1}
+        }
+
+        # Retire defeated roots cleanly instead of leaving them as active team members.
+        if life = 0 && (statetype=S || statetype=C || statetype=A && stateno=[5040,5050])
+        {
+            changestate{value:135059}
+        }
+
+        ignorehitpause if life = 0 && statetype=L
+        {
+            playerpush{value:0}
+            screenbound{value:0}
+            if incustomstate
+            {
+                posset{y:0}
+                selfstate{value:5150}
+            }
+            else
+            {
+                posset{y:0}
+                changestate{value:5150}
+            }
+        }
+    }
+}
+
+# Air get-hit / defeated transition used by the FFA retirement logic.
+[StateDef 135059; type: A; movetype: H; physics: N;]
+
+if animTime = 0 && anim = 5035 || time = 0 && anim != 5035 &&
+    anim != [5051, 5059] && anim != [5061, 5069] && anim != 5090 {
+    changeAnim{value: 5050}
+}
+persistent(0) if anim = [5050, 5059] && vel y >= ifElse(anim = 5050,
+    const240p(1), const240p(-2)) && selfAnimExist(anim + 10) {
+    changeAnim{value: anim + 10}
+}
+if time > 0 {
+    velAdd{y: getHitVar(yAccel)}
+}
+if vel y > 0 && pos y >= cond(anim = [5051, 5059] || anim = [5061, 5069], 0, const(movement.air.gethit.groundlevel)) {
+    changeState{value: 5100}
+}
