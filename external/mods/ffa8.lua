@@ -88,9 +88,8 @@ local function configure(mode, count)
     return start.f_selectMode
 end
 
--- IMPORTANT: IKEMEN's generated nested menu dispatches only the final segment
--- to main.t_itemname. Therefore each actionable leaf needs a globally unique
--- final segment (ffah2, ffav2, etc.), not a handler named ffa_allhuman_2.
+-- IKEMEN's generated nested menu dispatches only the final segment to
+-- main.t_itemname. Each actionable leaf therefore needs a globally unique name.
 local function addCountHandlers(prefix, mode)
     for n = 2, 8 do
         local leaf = prefix .. tostring(n)
@@ -101,9 +100,8 @@ local function addCountHandlers(prefix, mode)
     end
 end
 
--- Build the FFA submenu without requiring screenpack edits. Leaf names are
--- intentionally unique because main.f_appendItemname rejects duplicate final
--- item names and main.f_createMenu dispatches the final segment only.
+-- Build the FFA submenu without requiring screenpack edits. The final argument
+-- inserts the top-level FFA entry immediately before EXIT.
 main.f_appendItemname(motif.title_info.menu, '', 'ffa', {
     __value = 'FFA',
     __order = {'allhuman', 'vsai', 'allai', 'custom'},
@@ -133,7 +131,7 @@ main.f_appendItemname(motif.title_info.menu, '', 'ffa', {
         ffacp5 = 'P5: AI', ffacp6 = 'P6: AI', ffacp7 = 'P7: AI', ffacp8 = 'P8: AI',
         ffacstart = 'Start Custom FFA',
     },
-})
+}, 'exit')
 
 addCountHandlers('ffah', 'allhuman')
 addCountHandlers('ffav', 'vsai')
@@ -156,8 +154,8 @@ local function updateCustomLabels(t)
     end
 end
 
--- Custom-setting handlers intentionally return nil so the user stays inside
--- the Custom FFA submenu instead of fading out to a game mode immediately.
+-- Custom-setting handlers intentionally return nil so the user remains inside
+-- the Custom FFA submenu instead of fading out to character select immediately.
 main.t_itemname['ffacount'] = function(t)
     main.ffa8.count = main.ffa8.count + 1
     if main.ffa8.count > 8 then main.ffa8.count = 2 end
