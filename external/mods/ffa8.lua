@@ -75,11 +75,13 @@ local function configure(mode, count)
         main.teamMenu[side].turns = false
     end
 
-    -- Human/AI ownership of each root is applied per player slot by the patched
-    -- start.f_remapAI. These legacy side flags only keep select-screen behavior sane.
-    main.coop = mode == 'allhuman'
-    main.cpuSide[1] = mode == 'allai'
-    main.cpuSide[2] = mode ~= 'allhuman'
+    -- IMPORTANT: keep the legacy side-level CPU flags disabled. If they are set,
+    -- start.f_selectReset marks that side's team menu as already completed before
+    -- the FFA allocator can assign its requested root slots. Match Human/AI control
+    -- is instead assigned independently per root in the patched start.f_remapAI.
+    main.coop = false
+    main.cpuSide[1] = false
+    main.cpuSide[2] = false
 
     setHomeTeam(1)
     setGameMode('freeforall')
