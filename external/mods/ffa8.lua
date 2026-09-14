@@ -37,8 +37,6 @@ local function setHumanPreset(mode, count)
         -- none
     elseif mode == 'custom' then
         for i = 1, 8 do human[i] = main.ffa8.human[i] == true end
-        -- Keep at least one selectable human control path for menu navigation.
-        -- This does not force P1 to be human in the actual fight.
     end
     main.ffa8.human = human
 end
@@ -48,6 +46,8 @@ local function configure(mode, count)
     main.ffa8.count = count
     main.ffa8.mode = mode
     setHumanPreset(mode, count)
+
+    print(string.format('[FFA8] start mode=%s players=%d', tostring(mode), count))
 
     main.aiRamp = false
     main.charparam.ai = true
@@ -64,8 +64,9 @@ local function configure(mode, count)
     main.selectMenu[2] = true
     main.stageMenu = true
 
-    -- FFA is allocated through the engine's simultaneous root slots internally,
-    -- but team selection is bypassed by the FFA start.lua patch.
+    -- FFA is allocated through simultaneous root slots internally. The patched
+    -- start.lua bypasses the visible Team/Simul menu and allocates the requested
+    -- total number of independent root fighters across both internal sides.
     for side = 1, 2 do
         main.teamMenu[side].ratio = false
         main.teamMenu[side].single = false
@@ -74,7 +75,8 @@ local function configure(mode, count)
         main.teamMenu[side].turns = false
     end
 
-    -- The patched start logic controls each slot independently.
+    -- Human/AI ownership of each root is applied per player slot by the patched
+    -- start.f_remapAI. These legacy side flags only keep select-screen behavior sane.
     main.coop = mode == 'allhuman'
     main.cpuSide[1] = mode == 'allai'
     main.cpuSide[2] = mode ~= 'allhuman'
@@ -86,59 +88,65 @@ local function configure(mode, count)
     return start.f_selectMode
 end
 
+-- IMPORTANT: IKEMEN's generated nested menu dispatches only the final segment
+-- to main.t_itemname. Therefore each actionable leaf needs a globally unique
+-- final segment (ffah2, ffav2, etc.), not a handler named ffa_allhuman_2.
 local function addCountHandlers(prefix, mode)
     for n = 2, 8 do
-        local key = prefix .. '_' .. tostring(n)
-        main.t_itemname[key] = function()
-            return configure(mode, n)
+        local leaf = prefix .. tostring(n)
+        local players = n
+        main.t_itemname[leaf] = function()
+            return configure(mode, players)
         end
     end
 end
 
--- Build a proper FFA submenu without requiring screenpack edits.
+-- Build the FFA submenu without requiring screenpack edits. Leaf names are
+-- intentionally unique because main.f_appendItemname rejects duplicate final
+-- item names and main.f_createMenu dispatches the final segment only.
 main.f_appendItemname(motif.title_info.menu, '', 'ffa', {
     __value = 'FFA',
     __order = {'allhuman', 'vsai', 'allai', 'custom'},
     allhuman = {
         __value = 'All Human FFA',
-        __order = {'2','3','4','5','6','7','8'},
-        ['2']='2 Players', ['3']='3 Players', ['4']='4 Players', ['5']='5 Players',
-        ['6']='6 Players', ['7']='7 Players', ['8']='8 Players',
+        __order = {'ffah2','ffah3','ffah4','ffah5','ffah6','ffah7','ffah8'},
+        ffah2='2 Players', ffah3='3 Players', ffah4='4 Players', ffah5='5 Players',
+        ffah6='6 Players', ffah7='7 Players', ffah8='8 Players',
     },
     vsai = {
         __value = 'VS AI FFA',
-        __order = {'2','3','4','5','6','7','8'},
-        ['2']='2 Players', ['3']='3 Players', ['4']='4 Players', ['5']='5 Players',
-        ['6']='6 Players', ['7']='7 Players', ['8']='8 Players',
+        __order = {'ffav2','ffav3','ffav4','ffav5','ffav6','ffav7','ffav8'},
+        ffav2='2 Players', ffav3='3 Players', ffav4='4 Players', ffav5='5 Players',
+        ffav6='6 Players', ffav7='7 Players', ffav8='8 Players',
     },
     allai = {
         __value = 'All AI FFA',
-        __order = {'2','3','4','5','6','7','8'},
-        ['2']='2 Players', ['3']='3 Players', ['4']='4 Players', ['5']='5 Players',
-        ['6']='6 Players', ['7']='7 Players', ['8']='8 Players',
+        __order = {'ffaa2','ffaa3','ffaa4','ffaa5','ffaa6','ffaa7','ffaa8'},
+        ffaa2='2 Players', ffaa3='3 Players', ffaa4='4 Players', ffaa5='5 Players',
+        ffaa6='6 Players', ffaa7='7 Players', ffaa8='8 Players',
     },
     custom = {
         __value = 'Custom FFA',
-        __order = {'count','p1','p2','p3','p4','p5','p6','p7','p8','start'},
-        count = 'Players: 4',
-        p1 = 'P1: Human', p2 = 'P2: AI', p3 = 'P3: AI', p4 = 'P4: AI',
-        p5 = 'P5: AI', p6 = 'P6: AI', p7 = 'P7: AI', p8 = 'P8: AI',
-        start = 'Start Custom FFA',
+        __order = {'ffacount','ffacp1','ffacp2','ffacp3','ffacp4','ffacp5','ffacp6','ffacp7','ffacp8','ffacstart'},
+        ffacount = 'Players: 4',
+        ffacp1 = 'P1: Human', ffacp2 = 'P2: AI', ffacp3 = 'P3: AI', ffacp4 = 'P4: AI',
+        ffacp5 = 'P5: AI', ffacp6 = 'P6: AI', ffacp7 = 'P7: AI', ffacp8 = 'P8: AI',
+        ffacstart = 'Start Custom FFA',
     },
 })
 
-addCountHandlers('ffa_allhuman', 'allhuman')
-addCountHandlers('ffa_vsai', 'vsai')
-addCountHandlers('ffa_allai', 'allai')
+addCountHandlers('ffah', 'allhuman')
+addCountHandlers('ffav', 'vsai')
+addCountHandlers('ffaa', 'allai')
 
 local function updateCustomLabels(t)
     if type(t) ~= 'table' then return end
-    for i, item in ipairs(t) do
-        if item.itemname == 'ffa_custom_count' then
+    for _, item in ipairs(t) do
+        if item.itemname == 'ffacount' then
             item.displayname = 'Players: ' .. tostring(main.ffa8.count)
         else
             for p = 1, 8 do
-                if item.itemname == 'ffa_custom_p' .. tostring(p) then
+                if item.itemname == 'ffacp' .. tostring(p) then
                     local active = p <= main.ffa8.count
                     local role = main.ffa8.human[p] and 'Human' or 'AI'
                     item.displayname = 'P' .. tostring(p) .. ': ' .. role .. (active and '' or ' (inactive)')
@@ -148,24 +156,26 @@ local function updateCustomLabels(t)
     end
 end
 
-main.t_itemname['ffa_custom_count'] = function(t)
+-- Custom-setting handlers intentionally return nil so the user stays inside
+-- the Custom FFA submenu instead of fading out to a game mode immediately.
+main.t_itemname['ffacount'] = function(t)
     main.ffa8.count = main.ffa8.count + 1
     if main.ffa8.count > 8 then main.ffa8.count = 2 end
     updateCustomLabels(t)
-    return t
+    return nil
 end
 
 for p = 1, 8 do
     local pn = p
-    main.t_itemname['ffa_custom_p' .. tostring(p)] = function(t)
+    main.t_itemname['ffacp' .. tostring(p)] = function(t)
         if pn <= main.ffa8.count then
             main.ffa8.human[pn] = not main.ffa8.human[pn]
         end
         updateCustomLabels(t)
-        return t
+        return nil
     end
 end
 
-main.t_itemname['ffa_custom_start'] = function()
+main.t_itemname['ffacstart'] = function()
     return configure('custom', main.ffa8.count)
 end
