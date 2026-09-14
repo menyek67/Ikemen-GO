@@ -28,14 +28,15 @@ jobs:
 
       - name: Verify FFA files
         run: |
-          test -f external/mods/ffa8.lua
-          test -f external/mods/ffa8.zss
+          test -f external/mods/ffa8/ffa8.lua
+          test -f external/mods/ffa8/ffa8.zss
           grep -q 'gameMode == "freeforall"' src/char.go
           grep -q "gameMode('freeforall')" external/script/start.lua
-          grep -q 'All Human FFA' external/mods/ffa8.lua
-          grep -q 'VS AI FFA' external/mods/ffa8.lua
-          grep -q 'All AI FFA' external/mods/ffa8.lua
-          grep -q 'Custom FFA' external/mods/ffa8.lua
+          grep -q 'All Human FFA' external/mods/ffa8/ffa8.lua
+          grep -q 'VS AI FFA' external/mods/ffa8/ffa8.lua
+          grep -q 'All AI FFA' external/mods/ffa8/ffa8.lua
+          grep -q 'Custom FFA' external/mods/ffa8/ffa8.lua
+          grep -q "external/mods/ffa8/ffa8.zss" external/mods/ffa8/ffa8.lua
 
       - name: Build Android APK
         env:
@@ -49,10 +50,10 @@ jobs:
 
       - name: Prepare test bundle
         run: |
-          mkdir -p ffa-test-build/external/mods
+          mkdir -p ffa-test-build/external/mods/ffa8
           cp bin/ikemen-go.apk ffa-test-build/
-          cp external/mods/ffa8.lua ffa-test-build/external/mods/
-          cp external/mods/ffa8.zss ffa-test-build/external/mods/
+          cp external/mods/ffa8/ffa8.lua ffa-test-build/external/mods/ffa8/
+          cp external/mods/ffa8/ffa8.zss ffa-test-build/external/mods/ffa8/
           cp build/ffa/README.md ffa-test-build/ 2>/dev/null || true
           (cd ffa-test-build && zip -r ../Ikemen_GO-FFA-2-8-Android.zip .)
 
